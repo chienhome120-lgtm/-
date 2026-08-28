@@ -47,6 +47,12 @@ header{position:sticky;top:0;z-index:30;background:rgba(245,241,232,.94);backdro
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 6px 18px rgba(70,55,35,.07)}
 .card img{width:100%;height:170px;object-fit:cover;background:#ddd}
+.customOptions{margin:10px 0 4px;display:grid;gap:7px}
+.optionGroup{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.optionLabel{font-size:.8rem;color:var(--muted);font-weight:800;min-width:38px}
+.optBtn{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 10px;font-size:.82rem;font-weight:800;color:var(--ink)}
+.optBtn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.cartOptionText{font-size:.86rem;color:var(--accent2);font-weight:800;margin-top:4px;line-height:1.45}
 .cardBody{padding:14px}
 .card h3{margin:0 0 5px;font-size:1.08rem}
 .desc{color:var(--muted);font-size:.9rem;min-height:42px}
@@ -83,6 +89,19 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}
 .payOrder{font-size:.9rem;color:var(--muted);margin-bottom:8px}
 .payHint{font-size:.9rem;color:var(--muted);line-height:1.65}
 .previewQR{width:150px;height:150px;object-fit:contain;background:#fff;border:1px solid var(--line);border-radius:12px;padding:6px;margin-top:8px}
+.quickActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.quickActions button{flex:0 0 auto}
+.groupBanner{display:none;margin:0 0 14px;background:#eef4eb;border:1px solid #c7d4c0;border-radius:15px;padding:12px}
+.groupBanner.show{display:block}
+.groupCode{font-weight:900;letter-spacing:.08em}
+.groupMembers{display:grid;gap:9px;margin:12px 0}
+.groupMember{background:#fff;border:1px solid var(--line);border-radius:13px;padding:11px}
+.groupMemberHead{display:flex;justify-content:space-between;gap:10px;margin-bottom:5px}
+.groupItems{font-size:.9rem;line-height:1.6;color:var(--muted)}
+.groupTotal{font-size:1.25rem;font-weight:900;color:var(--accent2)}
+.shareLinkBox{display:flex;gap:7px}
+.shareLinkBox input{flex:1;min-width:0}
+@media(max-width:600px){.quickActions{display:grid;grid-template-columns:1fr 1fr}.quickActions button{width:100%}.shareLinkBox{flex-direction:column}}
 @media(max-width:600px){.topbar{padding:10px}.wrap{padding:12px 10px 95px}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.card img{height:120px}.cardBody{padding:10px}.desc{font-size:.78rem;min-height:38px}.addBtn{padding:8px 10px}.modalBox{margin:2vh 8px;max-height:96vh}.brand{font-size:1.05rem}}
 </style>
 </head>
@@ -101,6 +120,17 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}
       <button class="moodToggle" onclick="toggleMoodPanel()">🌤️ 心情點餐</button>
     </div>
     <p>選好餐點後，可在確認清單逐項修改數量、備註、刪除或繼續新增餐點。</p>
+    <div class="quickActions">
+      <button class="secondary" onclick="openGroupModal()">👥 多人團訂</button>
+      <button id="reorderBtn" class="secondary" onclick="reorderLast()" style="display:none">🔁 再點一次</button>
+    </div>
+  </section>
+  <section id="groupBanner" class="groupBanner">
+    <div class="row between" style="flex-wrap:wrap">
+      <div>👥 正在參加團訂：<span id="groupBannerCode" class="groupCode"></span></div>
+      <button class="secondary" onclick="openGroupModal()">查看團訂</button>
+    </div>
+    <div class="small" style="margin-top:5px">選好自己的餐點後，打開「確認餐點」並按「加入團訂」，主揪最後統一送單與付款。</div>
   </section>
   <section id="moodPanel" class="moodPanel">
     <div class="moodBtns">
@@ -134,8 +164,9 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}
     <div class="field"><label>桌號 / 取餐號碼</label><input id="tableNo" placeholder="例如：A03 / 外帶01"></div>
     <div class="field"><label>顧客姓名</label><input id="customerName" placeholder="選填"></div>
     <div class="field"><label>整單備註</label><textarea id="orderNote" rows="2" placeholder="例如：趕時間、餐具需求"></textarea></div>
+    <button id="groupAddBtn" class="secondary" style="display:none;width:100%;padding:14px;margin-bottom:8px" onclick="addCartToGroup()">👥 將我的餐點加入團訂</button>
     <button id="submitBtn" class="primary" style="width:100%;padding:14px" onclick="submitOrder()">確認餐點並前往付款</button>
-    <p class="small">確認後會先將訂單傳至 Google Sheet 後台，再顯示 LINE 付款 QR Code 與應付金額。</p>
+    <p id="cartSubmitHint" class="small">確認後會先將訂單傳至 Google Sheet 後台，再顯示 LINE 付款 QR Code 與應付金額。</p>
   </aside>
 </div>
 
@@ -143,7 +174,7 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}
   <div class="modalBox">
     <div class="row between"><h2>後台管理</h2><button class="iconBtn" onclick="closeAdmin()">✕</button></div>
     <div id="loginArea">
-      <div class="field"><label>後台密碼</label><input id="adminPass" type="password" placeholder="預設：admin1234"></div>
+      <div class="field"><label>後台密碼</label><input id="adminPass" type="password" placeholder="請輸入後台密碼"></div>
       <button class="primary" onclick="adminLogin()">登入</button>
     </div>
     <div id="adminArea" style="display:none">
@@ -203,6 +234,45 @@ hr{border:0;border-top:1px solid var(--line);margin:16px 0}
   </div>
 </div>
 
+
+<div id="groupModal" class="modal" style="z-index:85" onclick="if(event.target===this)closeGroupModal()">
+  <div class="modalBox" style="max-width:620px">
+    <div class="row between"><h2>👥 多人一起點｜團訂</h2><button class="iconBtn" onclick="closeGroupModal()">✕</button></div>
+    <div id="groupStartArea">
+      <p class="small">建立團訂後，把連結分享給朋友。每個人用自己的手機選餐並加入團訂，最後由主揪一次送單與付款。</p>
+      <div class="field"><label>你的名字 / 暱稱</label><input id="groupStarterName" placeholder="例如：David"></div>
+      <div class="row" style="flex-wrap:wrap">
+        <button class="primary" onclick="createGroup()">建立新的團訂</button>
+        <button class="secondary" onclick="showJoinGroup()">輸入團訂代碼加入</button>
+      </div>
+      <div id="joinGroupArea" style="display:none;margin-top:12px">
+        <div class="field"><label>團訂代碼</label><input id="joinGroupCode" placeholder="例如：AB12CD" maxlength="8"></div>
+        <button class="primary" onclick="joinGroupByCode()">加入團訂</button>
+      </div>
+    </div>
+    <div id="groupActiveArea" style="display:none">
+      <div class="row between" style="flex-wrap:wrap">
+        <div><div class="small">團訂代碼</div><div id="activeGroupCode" class="groupCode" style="font-size:1.35rem"></div></div>
+        <button class="secondary" onclick="refreshGroup()">↻ 重新整理</button>
+      </div>
+      <div class="field" style="margin-top:12px"><label>我的名字 / 暱稱</label><input id="groupMemberName" placeholder="加入餐點時會標示是誰點的" oninput="saveGroupMemberName()"></div>
+      <div class="field">
+        <label>邀請朋友一起點</label>
+        <div class="shareLinkBox"><input id="groupShareLink" readonly><button class="secondary" onclick="shareGroupLink()">分享連結</button></div>
+      </div>
+      <div id="groupSummary" class="groupMembers"><div class="empty">尚未有人加入餐點</div></div>
+      <div class="row between totalBox"><b>團訂合計</b><b id="groupTotal" class="groupTotal">$0</b></div>
+      <div id="hostFinalizeArea" style="display:none">
+        <div class="field"><label>桌號 / 取餐號碼</label><input id="groupTableNo" placeholder="例如：A03 / 外帶01"></div>
+        <div class="field"><label>整團備註</label><textarea id="groupOrderNote" rows="2" placeholder="例如：餐具需求、一起出餐"></textarea></div>
+        <button id="groupFinalizeBtn" class="primary" style="width:100%;padding:14px" onclick="finalizeGroupOrder()">主揪確認團訂並前往付款</button>
+        <p class="small">只有建立這個團訂的主揪裝置會顯示此按鈕。</p>
+      </div>
+      <button class="secondary" style="width:100%;margin-top:8px" onclick="leaveGroup()">離開此團訂</button>
+    </div>
+  </div>
+</div>
+
 <div id="paymentModal" class="modal" style="z-index:90" onclick="if(event.target===this)closePayment()">
   <div class="modalBox" style="max-width:480px">
     <div class="row between"><h2>LINE 付款</h2><button class="iconBtn" onclick="closePayment()">✕</button></div>
@@ -239,6 +309,9 @@ let cart = JSON.parse(localStorage.getItem("brunch_cart")||"[]");
 let activeCategory = "全部";
 let adminOK = false;
 let pendingOrder = null;
+let currentGroup = localStorage.getItem("brunch_group_id") || "";
+let currentGroupIsHost = localStorage.getItem("brunch_group_host") === currentGroup && !!currentGroup;
+let lastOrder = JSON.parse(localStorage.getItem("brunch_last_order")||"null");
 const ADMIN_CATEGORIES = ["早午餐","吐司","可頌","漢堡","輕食","甜點","飲料"];
 
 function renderCategorySelect(selected="早午餐"){
@@ -250,37 +323,75 @@ function renderCategorySelect(selected="早午餐"){
 
 const GAS_CODE = `function doPost(e) {
   const SHEET_ID = '請改成你的 Google Sheet ID';
-  const SHEET_NAME = '訂單';
+  const ORDER_SHEET = '訂單';
+  const GROUP_SHEET = '團訂暫存';
   const ss = SpreadsheetApp.openById(SHEET_ID);
-  let sh = ss.getSheetByName(SHEET_NAME);
-  if (!sh) {
-    sh = ss.insertSheet(SHEET_NAME);
-    sh.appendRow(['訂單時間','訂單編號','桌號/取餐號','顧客姓名','餐點明細','總金額','整單備註','付款方式','付款狀態','狀態']);
+  const data = JSON.parse(e.postData.contents || '{}');
+  const action = data.action || 'submit_order';
+
+  function json(obj) {
+    return ContentService.createTextOutput(JSON.stringify(obj))
+      .setMimeType(ContentService.MimeType.JSON);
   }
-  const data = JSON.parse(e.postData.contents);
-  const detail = data.items.map(x =>
-    x.name + ' x' + x.qty + (x.note ? '（' + x.note + '）' : '')
-  ).join('\\n');
-  sh.appendRow([
-    new Date(),
-    data.orderId,
-    data.tableNo || '',
-    data.customerName || '',
-    detail,
-    data.total,
-    data.orderNote || '',
-    data.paymentMethod || 'LINE Pay',
-    data.paymentStatus || '待付款',
-    '待製作'
-  ]);
-  return ContentService
-    .createTextOutput(JSON.stringify({ok:true}))
-    .setMimeType(ContentService.MimeType.JSON);
+  function orderSheet() {
+    let sh = ss.getSheetByName(ORDER_SHEET);
+    if (!sh) {
+      sh = ss.insertSheet(ORDER_SHEET);
+      sh.appendRow(['訂單時間','訂單編號','桌號/取餐號','顧客姓名','餐點明細','總金額','整單備註','付款方式','付款狀態','狀態','團訂代碼']);
+    }
+    return sh;
+  }
+  function groupSheet() {
+    let sh = ss.getSheetByName(GROUP_SHEET);
+    if (!sh) {
+      sh = ss.insertSheet(GROUP_SHEET);
+      sh.appendRow(['加入時間','團訂代碼','成員','餐點ID','餐點名稱','單價','數量','單項備註','客製選項']);
+    }
+    return sh;
+  }
+
+  if (action === 'group_create') return json({ok:true,groupId:data.groupId});
+
+  if (action === 'group_add') {
+    const sh = groupSheet();
+    (data.items || []).forEach(x => sh.appendRow([
+      new Date(), data.groupId, data.memberName || '團員',
+      x.id || '', x.name || '', Number(x.price || 0), Number(x.qty || 1), x.note || '', x.optionsText || ''
+    ]));
+    return json({ok:true});
+  }
+
+  if (action === 'group_get') {
+    const sh = groupSheet(), values = sh.getDataRange().getValues(), items = [];
+    for (let i=1;i<values.length;i++) if (String(values[i][1]) === String(data.groupId)) {
+      items.push({memberName:values[i][2],id:values[i][3],name:values[i][4],price:Number(values[i][5]||0),qty:Number(values[i][6]||1),note:values[i][7]||'',optionsText:values[i][8]||''});
+    }
+    return json({ok:true,items:items});
+  }
+
+  if (action === 'group_finalize') {
+    const gs = groupSheet(), values = gs.getDataRange().getValues(), items = [], deleteRows = [];
+    for (let i=1;i<values.length;i++) if (String(values[i][1]) === String(data.groupId)) {
+      items.push({memberName:values[i][2],id:values[i][3],name:values[i][4],price:Number(values[i][5]||0),qty:Number(values[i][6]||1),note:values[i][7]||'',optionsText:values[i][8]||''});
+      deleteRows.push(i+1);
+    }
+    if (!items.length) return json({ok:false,message:'團訂目前沒有餐點'});
+    const total = items.reduce((sum,x)=>sum+x.price*x.qty,0);
+    const orderId = 'G' + new Date().getTime();
+    const detail = items.map(x => '['+x.memberName+'] '+x.name+' x'+x.qty+(x.optionsText?'［'+x.optionsText+'］':'')+(x.note?'（'+x.note+'）':'')).join('\n');
+    orderSheet().appendRow([new Date(),orderId,data.tableNo||'','團訂',detail,total,data.orderNote||'','LINE Pay','待付款','待製作',data.groupId]);
+    deleteRows.reverse().forEach(r => gs.deleteRow(r));
+    return json({ok:true,orderId:orderId,total:total,items:items});
+  }
+
+  const sh = orderSheet();
+  const detail = (data.items || []).map(x => x.name+' x'+x.qty+(x.optionsText?'［'+x.optionsText+'］':'')+(x.note?'（'+x.note+'）':'')).join('\n');
+  sh.appendRow([new Date(),data.orderId,data.tableNo||'',data.customerName||'',detail,data.total,data.orderNote||'',data.paymentMethod||'LINE Pay',data.paymentStatus||'待付款','待製作',data.groupId||'']);
+  return json({ok:true});
 }
 
 function doGet() {
-  return ContentService
-    .createTextOutput(JSON.stringify({ok:true,message:'Brunch order API ready'}))
+  return ContentService.createTextOutput(JSON.stringify({ok:true,message:'Brunch order API ready'}))
     .setMimeType(ContentService.MimeType.JSON);
 }`;
 
@@ -293,6 +404,50 @@ function renderCategories(){
 }
 function setCategory(c){activeCategory=c;renderCategories();renderMenu()}
 function esc(s){return String(s).replace(/\\/g,"\\\\").replace(/'/g,"\\'").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+const itemChoices = {};
+function isDrinkItem(x){return x.category==="飲料"}
+function isMainItem(x){return x.category!=="飲料" && x.category!=="甜點"}
+function ensureChoice(id){
+  const m=menu.find(x=>x.id===id); if(!m)return {};
+  if(!itemChoices[id]){
+    itemChoices[id]=isDrinkItem(m)
+      ? {drinkTemp:"正常",drinkSugar:"半糖"}
+      : isMainItem(m) ? {sauce:"要醬"} : {};
+  }
+  return itemChoices[id];
+}
+function chooseItemOption(id,key,value,btn){
+  const c=ensureChoice(id);c[key]=value;
+  const wrap=btn.closest(".optionGroup");
+  wrap.querySelectorAll(".optBtn").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+}
+function optionTextForItem(m,c){
+  if(isDrinkItem(m))return `${c.drinkTemp||"正常"}・${c.drinkSugar||"半糖"}`;
+  if(isMainItem(m))return c.sauce||"要醬";
+  return "";
+}
+function renderCustomOptions(x){
+  const c=ensureChoice(x.id);
+  if(isDrinkItem(x)){
+    const temps=["熱","正常","去冰","多冰"];
+    const sugars=["多糖","半糖","無糖"];
+    return `<div class="customOptions">
+      <div class="optionGroup"><span class="optionLabel">溫度</span>${temps.map(v=>`<button type="button" class="optBtn ${c.drinkTemp===v?"active":""}" onclick="chooseItemOption('${x.id}','drinkTemp','${v}',this)">${v}</button>`).join("")}</div>
+      <div class="optionGroup"><span class="optionLabel">甜度</span>${sugars.map(v=>`<button type="button" class="optBtn ${c.drinkSugar===v?"active":""}" onclick="chooseItemOption('${x.id}','drinkSugar','${v}',this)">${v}</button>`).join("")}</div>
+    </div>`;
+  }
+  if(isMainItem(x)){
+    return `<div class="customOptions">
+      <div class="optionGroup"><span class="optionLabel">醬料</span>
+        <button type="button" class="optBtn ${c.sauce==="要醬"?"active":""}" onclick="chooseItemOption('${x.id}','sauce','要醬',this)">要醬</button>
+        <button type="button" class="optBtn ${c.sauce==="不要醬"?"active":""}" onclick="chooseItemOption('${x.id}','sauce','不要醬',this)">不要醬</button>
+      </div>
+    </div>`;
+  }
+  return "";
+}
+
 function renderMenu(){
   const data=activeCategory==="全部"?menu:menu.filter(x=>x.category===activeCategory);
   menuGrid.innerHTML=data.length?data.map(x=>`
@@ -300,15 +455,25 @@ function renderMenu(){
     <img src="${x.image}" alt="${x.name}" onerror="this.src='data:image/svg+xml;charset=UTF-8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22><rect width=%22100%%22 height=%22100%%22 fill=%22%23ddd6ca%22/><text x=%2250%%22 y=%2250%%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2234%22 fill=%22%237e786f%22>Brunch</text></svg>'">
     <div class="cardBody">
       <h3>${x.name}</h3><div class="desc">${x.desc}</div>
+      ${renderCustomOptions(x)}
       <div class="priceRow"><span class="price">${money(x.price)}</span><button class="addBtn" onclick="addToCart('${x.id}')">加入</button></div>
     </div>
   </article>`).join(""):`<div class="empty">目前沒有餐點</div>`;
 }
 function addToCart(id){
   const m=menu.find(x=>x.id===id); if(!m)return;
-  const same=cart.find(x=>x.id===id && !x.note);
-  if(same)same.qty++; else cart.push({id:m.id,name:m.name,price:m.price,qty:1,note:""});
-  persist();renderCart();toast("已加入："+m.name);
+  const c={...ensureChoice(id)};
+  const optionsText=optionTextForItem(m,c);
+  const same=cart.find(x=>x.id===id && !x.note && (x.optionsText||"")===optionsText);
+  if(same)same.qty++;
+  else cart.push({
+    id:m.id,name:m.name,price:m.price,qty:1,note:"",
+    sauce:c.sauce||"",
+    drinkTemp:c.drinkTemp||"",
+    drinkSugar:c.drinkSugar||"",
+    optionsText:optionsText
+  });
+  persist();renderCart();toast("已加入："+m.name+(optionsText?"（"+optionsText+"）":""));
 }
 function pickRandom(arr){return arr[Math.floor(Math.random()*arr.length)]}
 function toggleMoodPanel(){
@@ -333,21 +498,154 @@ function moodOrder(type){
   moodResult.classList.add("show");
 }
 function addMoodPair(mainId,drinkId){addToCart(mainId);addToCart(drinkId);toast("心情套餐已加入餐點");}
+function updateQuickActions(){
+  reorderBtn.style.display=lastOrder&&lastOrder.items&&lastOrder.items.length?"inline-block":"none";
+  if(currentGroup){
+    groupBanner.classList.add("show");groupBannerCode.textContent=currentGroup;
+    groupAddBtn.style.display="block";submitBtn.style.display="none";
+    cartSubmitHint.textContent="目前為團訂模式：餐點會先加入團訂清單，由主揪最後統一送單與付款。";
+  }else{
+    groupBanner.classList.remove("show");groupAddBtn.style.display="none";submitBtn.style.display="block";
+    cartSubmitHint.textContent="確認後會先將訂單傳至 Google Sheet 後台，再顯示 LINE 付款 QR Code 與應付金額。";
+  }
+}
+function reorderLast(){
+  lastOrder=JSON.parse(localStorage.getItem("brunch_last_order")||"null");
+  if(!lastOrder||!lastOrder.items||!lastOrder.items.length)return toast("目前沒有上一筆訂單");
+  const available=[];
+  lastOrder.items.forEach(old=>{
+    const m=menu.find(x=>x.id===old.id)||menu.find(x=>x.name===old.name);
+    if(m)available.push({
+      id:m.id,name:m.name,price:m.price,qty:Number(old.qty||1),note:old.note||"",
+      sauce:old.sauce||"",drinkTemp:old.drinkTemp||"",drinkSugar:old.drinkSugar||"",
+      optionsText:old.optionsText||""
+    });
+  });
+  if(!available.length)return toast("上一筆餐點目前已不在菜單中");
+  cart=available;persist();renderCart();openCart();toast("已帶入上一筆餐點，可再修改後送出");
+}
+function makeGroupId(){
+  const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let out="";
+  for(let i=0;i<6;i++)out+=chars[Math.floor(Math.random()*chars.length)];
+  return out;
+}
+function apiUrl(){return localStorage.getItem("brunch_gas_url")||""}
+async function groupApi(payload){
+  const url=apiUrl();if(!url)throw new Error("尚未在後台設定 Google Apps Script URL");
+  const res=await fetch(url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)});
+  if(!res.ok)throw new Error("HTTP "+res.status);
+  return await res.json();
+}
+function openGroupModal(){
+  groupModal.classList.add("show");
+  if(currentGroup){
+    groupStartArea.style.display="none";groupActiveArea.style.display="block";
+    activeGroupCode.textContent=currentGroup;
+    groupMemberName.value=localStorage.getItem("brunch_group_member")||"";
+    groupShareLink.value=makeGroupLink(currentGroup);
+    hostFinalizeArea.style.display=currentGroupIsHost?"block":"none";
+    refreshGroup();
+  }else{groupStartArea.style.display="block";groupActiveArea.style.display="none";}
+}
+function closeGroupModal(){groupModal.classList.remove("show")}
+function showJoinGroup(){joinGroupArea.style.display=joinGroupArea.style.display==="none"?"block":"none"}
+function makeGroupLink(code){const u=new URL(location.href);u.searchParams.set("group",code);return u.toString()}
+async function createGroup(){
+  const name=groupStarterName.value.trim();if(!name)return toast("請先輸入你的名字或暱稱");
+  const id=makeGroupId();
+  try{
+    const r=await groupApi({action:"group_create",groupId:id});if(!r.ok)throw new Error(r.message||"建立失敗");
+    currentGroup=id;currentGroupIsHost=true;
+    localStorage.setItem("brunch_group_id",id);localStorage.setItem("brunch_group_host",id);localStorage.setItem("brunch_group_member",name);
+    updateQuickActions();openGroupModal();toast("團訂已建立，分享連結給朋友吧！");
+  }catch(e){console.error(e);toast(e.message||"團訂建立失敗")}
+}
+function joinGroupByCode(){
+  const code=joinGroupCode.value.trim().toUpperCase().replace(/[^A-Z0-9]/g,"");
+  const name=groupStarterName.value.trim();
+  if(!name)return toast("請先輸入你的名字或暱稱");if(!code)return toast("請輸入團訂代碼");
+  setCurrentGroup(code,false,name);
+}
+function setCurrentGroup(code,isHost=false,name=""){
+  currentGroup=code;currentGroupIsHost=isHost;localStorage.setItem("brunch_group_id",code);
+  if(isHost)localStorage.setItem("brunch_group_host",code);else if(localStorage.getItem("brunch_group_host")!==code)localStorage.removeItem("brunch_group_host");
+  if(name)localStorage.setItem("brunch_group_member",name);
+  updateQuickActions();openGroupModal();
+}
+function saveGroupMemberName(){localStorage.setItem("brunch_group_member",groupMemberName.value.trim())}
+async function shareGroupLink(){
+  const link=groupShareLink.value;
+  try{
+    if(navigator.share)await navigator.share({title:"一起點早午餐",text:"一起點餐吧！團訂代碼："+currentGroup,url:link});
+    else{await navigator.clipboard.writeText(link);toast("團訂連結已複製")}
+  }catch(e){if(e.name!=="AbortError")toast("無法分享，請手動複製連結")}
+}
+async function addCartToGroup(){
+  if(!currentGroup)return toast("目前尚未加入團訂");if(!cart.length)return toast("請先選擇餐點");
+  const member=(localStorage.getItem("brunch_group_member")||"").trim();
+  if(!member){openGroupModal();return toast("請先填寫你的名字或暱稱")}
+  groupAddBtn.disabled=true;groupAddBtn.textContent="加入團訂中…";
+  try{
+    const r=await groupApi({action:"group_add",groupId:currentGroup,memberName:member,items:cart.map(x=>({...x}))});
+    if(!r.ok)throw new Error(r.message||"加入失敗");
+    cart=[];persist();renderCart();closeCart();toast("餐點已加入團訂！");openGroupModal();
+  }catch(e){console.error(e);toast(e.message||"加入團訂失敗")}
+  finally{groupAddBtn.disabled=false;groupAddBtn.textContent="👥 將我的餐點加入團訂"}
+}
+async function refreshGroup(){
+  if(!currentGroup)return;groupSummary.innerHTML='<div class="empty">團訂資料讀取中…</div>';
+  try{
+    const r=await groupApi({action:"group_get",groupId:currentGroup});if(!r.ok)throw new Error(r.message||"讀取失敗");
+    const items=r.items||[],grouped={};items.forEach(x=>(grouped[x.memberName]||(grouped[x.memberName]=[])).push(x));
+    const total=items.reduce((sum,x)=>sum+Number(x.price)*Number(x.qty),0);groupTotal.textContent=money(total);
+    groupSummary.innerHTML=items.length?Object.entries(grouped).map(([name,list])=>`
+      <div class="groupMember"><div class="groupMemberHead"><b>🙋 ${name}</b><b>${money(list.reduce((a,x)=>a+x.price*x.qty,0))}</b></div>
+      <div class="groupItems">${list.map(x=>`${x.name} × ${x.qty}${x.optionsText?`［${x.optionsText}］`:""}${x.note?`（${x.note}）`:""}`).join("<br>")}</div></div>`).join(""):'<div class="empty">尚未有人加入餐點</div>';
+  }catch(e){console.error(e);groupSummary.innerHTML='<div class="empty">讀取失敗，請確認 Apps Script 已更新為團訂版本</div>'}
+}
+async function finalizeGroupOrder(){
+  if(!currentGroupIsHost)return toast("只有主揪可以確認團訂");
+  groupFinalizeBtn.disabled=true;groupFinalizeBtn.textContent="團訂送出中…";
+  try{
+    const r=await groupApi({action:"group_finalize",groupId:currentGroup,tableNo:groupTableNo.value.trim(),orderNote:groupOrderNote.value.trim()});
+    if(!r.ok)throw new Error(r.message||"團訂送出失敗");
+    const payload={orderId:r.orderId,total:r.total,items:r.items||[],tableNo:groupTableNo.value.trim(),orderNote:groupOrderNote.value.trim(),groupId:currentGroup};
+    localStorage.setItem("brunch_last_order",JSON.stringify(payload));lastOrder=payload;
+    const old=currentGroup;currentGroup="";currentGroupIsHost=false;
+    localStorage.removeItem("brunch_group_id");localStorage.removeItem("brunch_group_host");localStorage.removeItem("brunch_group_member");
+    closeGroupModal();updateQuickActions();openPayment(payload);toast("團訂 "+old+" 已送出，請完成付款");
+  }catch(e){console.error(e);toast(e.message||"團訂送出失敗")}
+  finally{groupFinalizeBtn.disabled=false;groupFinalizeBtn.textContent="主揪確認團訂並前往付款"}
+}
+function leaveGroup(){
+  if(!confirm("確定離開目前團訂？已經加入 Google Sheet 的餐點不會被刪除。"))return;
+  currentGroup="";currentGroupIsHost=false;
+  localStorage.removeItem("brunch_group_id");localStorage.removeItem("brunch_group_host");localStorage.removeItem("brunch_group_member");
+  closeGroupModal();updateQuickActions();toast("已離開團訂");
+}
+function initGroupFromLink(){
+  const code=(new URL(location.href)).searchParams.get("group");
+  if(code&&!currentGroup){
+    currentGroup=code.toUpperCase();currentGroupIsHost=false;localStorage.setItem("brunch_group_id",currentGroup);
+    setTimeout(()=>{openGroupModal();toast("請輸入名字後，就可以一起點餐")},250);
+  }
+}
+
 function renderCart(){
   cartBadge.textContent=cart.reduce((a,b)=>a+b.qty,0);
   if(!cart.length){cartList.innerHTML='<div class="empty">尚未加入餐點</div>';totalPrice.textContent="$0";return}
   cartList.innerHTML=cart.map((x,i)=>`<div class="cartItem">
-    <div class="row between"><div><strong>${x.name}</strong><span class="small">${money(x.price)} / 份</span></div>
+    <div class="row between"><div><strong>${x.name}</strong><span class="small">${money(x.price)} / 份</span>${x.optionsText?`<div class="cartOptionText">客製：${x.optionsText}</div>`:""}</div>
       <button class="danger" style="padding:7px 10px" onclick="removeCart(${i})">刪除</button></div>
     <div class="row between" style="margin-top:8px"><div class="qty"><button onclick="changeQty(${i},-1)">−</button><b>${x.qty}</b><button onclick="changeQty(${i},1)">＋</button></div><b>${money(x.price*x.qty)}</b></div>
-    <input class="note" value="${x.note||''}" onchange="changeNote(${i},this.value)" placeholder="單項備註：去冰、醬另放、不加洋蔥…">
+    <input class="note" value="${x.note||''}" onchange="changeNote(${i},this.value)" placeholder="其他單項備註：例如不加洋蔥、醬另放…">
   </div>`).join("");
   totalPrice.textContent=money(cart.reduce((s,x)=>s+x.price*x.qty,0));
 }
 function changeQty(i,d){cart[i].qty+=d;if(cart[i].qty<=0)cart.splice(i,1);persist();renderCart()}
 function changeNote(i,v){cart[i].note=v;persist()}
 function removeCart(i){cart.splice(i,1);persist();renderCart()}
-function openCart(){renderCart();cartDrawer.classList.add("show")}
+function openCart(){renderCart();updateQuickActions();cartDrawer.classList.add("show")}
 function closeCart(){cartDrawer.classList.remove("show")}
 async function submitOrder(){
   if(!cart.length)return toast("請先選擇餐點");
@@ -369,6 +667,8 @@ async function submitOrder(){
     const res=await fetch(url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)});
     if(!res.ok)throw new Error("HTTP "+res.status);
     pendingOrder=payload;
+    localStorage.setItem("brunch_last_order",JSON.stringify(payload));
+    lastOrder=payload;updateQuickActions();
     cart=[];persist();renderCart();tableNo.value="";customerName.value="";orderNote.value="";
     closeCart();
     openPayment(payload);
@@ -400,9 +700,33 @@ function finishPayment(){
 }
 function openAdmin(){adminModal.classList.add("show");gasCode.textContent=GAS_CODE}
 function closeAdmin(){adminModal.classList.remove("show")}
-function adminLogin(){
-  const saved=localStorage.getItem("brunch_admin_pass")||"admin1234";
-  if(adminPass.value!==saved)return toast("密碼錯誤");
+async function sha256(text){
+  const data=new TextEncoder().encode(text);
+  const hash=await crypto.subtle.digest("SHA-256",data);
+  return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+async function adminLogin(){
+  const DEFAULT_ADMIN_HASH="d87922add0dd22d1facfbe038a079c8d63e8a647d915efcbb7f0605eb407a11d";
+  const input=adminPass.value;
+  const inputHash=await sha256(input);
+  const customHash=localStorage.getItem("brunch_admin_pass_hash");
+  const legacyPlain=localStorage.getItem("brunch_admin_pass");
+
+  let ok=false;
+  if(customHash){
+    ok=inputHash===customHash;
+  }else if(legacyPlain && legacyPlain!=="admin1234"){
+    ok=input===legacyPlain;
+    if(ok){
+      localStorage.setItem("brunch_admin_pass_hash",inputHash);
+      localStorage.removeItem("brunch_admin_pass");
+    }
+  }else{
+    ok=inputHash===DEFAULT_ADMIN_HASH;
+    localStorage.removeItem("brunch_admin_pass");
+  }
+
+  if(!ok)return toast("密碼錯誤");
   adminOK=true;loginArea.style.display="none";adminArea.style.display="block";
   gasUrl.value=localStorage.getItem("brunch_gas_url")||"";
   lineQrUrl.value=localStorage.getItem("brunch_line_qr")||"";
@@ -477,7 +801,7 @@ if(!localStorage.getItem("brunch_line_pay_hint") && ${payHintLiteral}) localStor
   const blob=new Blob(["<!DOCTYPE html>\n"+clone.outerHTML],{type:"text/html;charset=utf-8"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="brunch_order_system_export.html";a.click();URL.revokeObjectURL(a.href);
 }
-renderCategories();renderMenu();renderCart();
+renderCategories();renderMenu();renderCart();updateQuickActions();initGroupFromLink();
 </script>
 </body>
 </html>
