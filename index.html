@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>晨光早午餐｜智慧點餐系統</title>
+<style>
+:root{
+  --bg:#f5f1e8;--card:#fffdf8;--ink:#35322d;--muted:#7e786f;
+  --accent:#b9855b;--accent2:#6f8067;--danger:#b95d56;--line:#ded6ca;
+  --shadow:0 10px 28px rgba(70,55,35,.10);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+header{position:sticky;top:0;z-index:30;background:rgba(245,241,232,.94);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.topbar{max-width:1180px;margin:auto;padding:12px 16px;display:flex;align-items:center;gap:12px}
+.brand{font-weight:900;font-size:1.25rem;letter-spacing:.06em;flex:1}
+.brand small{display:block;font-size:.72rem;color:var(--muted);font-weight:600;letter-spacing:.04em}
+.iconBtn,.primary,.secondary,.danger{border:0;border-radius:12px;padding:10px 14px;font-weight:800}
+.iconBtn{background:#fff;border:1px solid var(--line)}
+.primary{background:var(--accent2);color:#fff}
+.secondary{background:#ede4d8;color:var(--ink)}
+.danger{background:var(--danger);color:#fff}
+.wrap{max-width:1180px;margin:auto;padding:18px 16px 100px}
+.hero{background:linear-gradient(135deg,#ede2d3,#f7f3ed);border:1px solid var(--line);border-radius:22px;padding:20px;box-shadow:var(--shadow);margin-bottom:16px}
+.hero h1{margin:0 0 6px;font-size:clamp(1.45rem,4vw,2.25rem)}
+.hero p{margin:0;color:var(--muted)}
+.heroTitleRow{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.heroTitleRow h1{margin:0}
+.moodToggle{border:1px solid var(--line);background:#fff8ec;border-radius:999px;padding:9px 14px;font-weight:900;color:var(--ink);box-shadow:0 5px 14px rgba(70,55,35,.08)}
+.moodToggle:hover{background:#f5eadc}
+.moodPanel{display:none;margin:12px 0 6px;background:#fffdf8;border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:0 6px 18px rgba(70,55,35,.06)}
+.moodPanel.show{display:block}
+.moodBtns{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.moodChoice{border:1px solid var(--line);background:#f7f3ed;border-radius:16px;padding:12px;text-align:left;cursor:pointer}
+.moodChoice:hover{background:#ede4d8;transform:translateY(-1px)}
+.moodChoice b{display:block;font-size:1rem;margin-bottom:5px}
+.moodNote{font-size:.86rem;color:var(--muted);line-height:1.45}
+.moodResult{display:none;margin-top:12px;padding:12px;border-radius:14px;background:#f5f1e8;border:1px dashed var(--line)}
+.moodResult.show{display:block}.moodPair{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:9px 0}.moodPair div{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px}
+@media(max-width:620px){.moodBtns{grid-template-columns:1fr}.moodPair{grid-template-columns:1fr}.heroTitleRow{align-items:flex-start}.moodToggle{padding:8px 12px}}
+.toolbar{display:flex;gap:8px;overflow:auto;padding:10px 0 14px}
+.chip{white-space:nowrap;border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 14px;font-weight:800}
+.chip.active{background:var(--accent2);color:#fff;border-color:var(--accent2)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 6px 18px rgba(70,55,35,.07)}
+.card img{width:100%;height:170px;object-fit:cover;background:#ddd}
+.cardBody{padding:14px}
+.card h3{margin:0 0 5px;font-size:1.08rem}
+.desc{color:var(--muted);font-size:.9rem;min-height:42px}
+.priceRow{display:flex;align-items:center;justify-content:space-between;margin-top:12px}
+.price{font-size:1.15rem;font-weight:900}
+.addBtn{border:0;background:var(--accent);color:#fff;border-radius:10px;padding:9px 13px;font-weight:900}
+.fab{position:fixed;right:18px;bottom:18px;z-index:40;border:0;border-radius:18px;background:var(--accent2);color:#fff;padding:14px 18px;font-weight:900;box-shadow:var(--shadow)}
+.badge{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;border-radius:999px;background:#fff;color:var(--accent2);margin-left:6px}
+.drawer,.modal{position:fixed;inset:0;z-index:60;background:rgba(25,25,22,.45);display:none}
+.drawer.show,.modal.show{display:block}
+.panel{position:absolute;right:0;top:0;height:100%;width:min(94vw,520px);background:var(--bg);padding:18px;overflow:auto}
+.modalBox{max-width:760px;margin:5vh auto;background:var(--bg);border-radius:22px;max-height:90vh;overflow:auto;padding:18px}
+.row{display:flex;gap:10px;align-items:center}
+.between{justify-content:space-between}
+.cartItem{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}
+.cartItem strong{display:block}
+.qty{display:flex;align-items:center;gap:8px}
+.qty button{width:32px;height:32px;border-radius:9px;border:1px solid var(--line);background:#fff;font-weight:900}
+.note{width:100%;margin-top:8px;padding:8px;border:1px solid var(--line);border-radius:9px}
+.totalBox{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;margin:12px 0;font-size:1.1rem}
+.field{margin-bottom:12px}
+.field label{display:block;font-weight:800;margin-bottom:5px}
+.field input,.field select,.field textarea{width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.adminList{display:grid;gap:10px}
+.adminItem{background:#fff;border:1px solid var(--line);padding:12px;border-radius:12px}
+.adminItem img{width:78px;height:60px;object-fit:cover;border-radius:8px}
+hr{border:0;border-top:1px solid var(--line);margin:16px 0}
+.small{font-size:.84rem;color:var(--muted)}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:100;background:#2f332f;color:#fff;padding:11px 15px;border-radius:999px;display:none}
+.empty{text-align:center;padding:35px;color:var(--muted)}
+.payBox{text-align:center;background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px}
+.payQR{width:min(72vw,300px);aspect-ratio:1/1;object-fit:contain;background:#fff;border:1px solid var(--line);border-radius:14px;padding:8px;margin:10px auto;display:block}
+.payAmount{font-size:2rem;font-weight:900;margin:8px 0;color:var(--accent2)}
+.payOrder{font-size:.9rem;color:var(--muted);margin-bottom:8px}
+.payHint{font-size:.9rem;color:var(--muted);line-height:1.65}
+.previewQR{width:150px;height:150px;object-fit:contain;background:#fff;border:1px solid var(--line);border-radius:12px;padding:6px;margin-top:8px}
+@media(max-width:600px){.topbar{padding:10px}.wrap{padding:12px 10px 95px}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.card img{height:120px}.cardBody{padding:10px}.desc{font-size:.78rem;min-height:38px}.addBtn{padding:8px 10px}.modalBox{margin:2vh 8px;max-height:96vh}.brand{font-size:1.05rem}}
+</style>
+</head>
+<body>
+<header>
+  <div class="topbar">
+    <div class="brand">晨光早午餐 <small>Brunch Ordering System</small></div>
+    <button class="iconBtn" onclick="openAdmin()">⚙ 後台管理</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <div class="heroTitleRow">
+      <h1>今天想吃點什麼？</h1>
+      <button class="moodToggle" onclick="toggleMoodPanel()">🌤️ 心情點餐</button>
+    </div>
+    <p>選好餐點後，可在確認清單逐項修改數量、備註、刪除或繼續新增餐點。</p>
+  </section>
+  <section id="moodPanel" class="moodPanel">
+    <div class="moodBtns">
+      <button class="moodChoice" onclick="moodOrder('rain')">
+        <b>🌧️ 雨天｜暖心療癒</b>
+        <span class="moodNote">外面下雨沒關係，肚子裡放晴就好。今天交給熱騰騰的主餐和香香的飲料抱抱你 ☕</span>
+      </button>
+      <button class="moodChoice" onclick="moodOrder('cloudy')">
+        <b>☁️ 陰天｜舒服滿足</b>
+        <span class="moodNote">天空今天有點懶，你也可以。來份剛剛好的美味，補足那一點點「不想上班」的靈魂電量 😌</span>
+      </button>
+      <button class="moodChoice" onclick="moodOrder('sunny')">
+        <b>☀️ 晴天｜清爽有精神</b>
+        <span class="moodNote">太陽都這麼努力上班了，我們至少要努力吃早餐。清爽主餐配提神飲料，今天很可以 😎</span>
+      </button>
+    </div>
+    <div id="moodResult" class="moodResult"></div>
+  </section>
+  <div id="categoryBar" class="toolbar"></div>
+  <section id="menuGrid" class="grid"></section>
+</main>
+
+<button class="fab" onclick="openCart()">🧾 確認餐點 <span id="cartBadge" class="badge">0</span></button>
+
+<div id="cartDrawer" class="drawer" onclick="if(event.target===this)closeCart()">
+  <aside class="panel">
+    <div class="row between"><h2>餐點確認清單</h2><button class="iconBtn" onclick="closeCart()">✕</button></div>
+    <div id="cartList"></div>
+    <button class="secondary" style="width:100%" onclick="closeCart()">＋ 繼續新增餐點</button>
+    <div class="totalBox row between"><b>合計</b><b id="totalPrice">$0</b></div>
+    <div class="field"><label>桌號 / 取餐號碼</label><input id="tableNo" placeholder="例如：A03 / 外帶01"></div>
+    <div class="field"><label>顧客姓名</label><input id="customerName" placeholder="選填"></div>
+    <div class="field"><label>整單備註</label><textarea id="orderNote" rows="2" placeholder="例如：趕時間、餐具需求"></textarea></div>
+    <button id="submitBtn" class="primary" style="width:100%;padding:14px" onclick="submitOrder()">確認餐點並前往付款</button>
+    <p class="small">確認後會先將訂單傳至 Google Sheet 後台，再顯示 LINE 付款 QR Code 與應付金額。</p>
+  </aside>
+</div>
+
+<div id="adminModal" class="modal" onclick="if(event.target===this)closeAdmin()">
+  <div class="modalBox">
+    <div class="row between"><h2>後台管理</h2><button class="iconBtn" onclick="closeAdmin()">✕</button></div>
+    <div id="loginArea">
+      <div class="field"><label>後台密碼</label><input id="adminPass" type="password" placeholder="預設：admin1234"></div>
+      <button class="primary" onclick="adminLogin()">登入</button>
+    </div>
+    <div id="adminArea" style="display:none">
+      <div class="field">
+        <label>Google Apps Script Web App URL</label>
+        <input id="gasUrl" placeholder="https://script.google.com/macros/s/.../exec">
+        <div class="small">請部署 Apps Script 為 Web App，執行身分選「我」，存取權限依需求設定。</div>
+      </div>
+      <hr>
+      <h3>LINE 付款設定</h3>
+      <div class="field">
+        <label>LINE Pay QR Code 圖片網址</label>
+        <input id="lineQrUrl" placeholder="https://... 或直接於下方上傳圖片" oninput="previewLineQR(this.value)">
+      </div>
+      <div class="field">
+        <label>或上傳 LINE Pay QR Code 圖片</label>
+        <input id="lineQrFile" type="file" accept="image/*" onchange="previewLineQRFile(this.files[0])">
+        <img id="lineQrPreview" class="previewQR" alt="LINE Pay QR Code 預覽" style="display:none">
+      </div>
+      <div class="field">
+        <label>LINE 付款連結（建議設定，方便同一支手機直接開啟）</label>
+        <input id="linePayLink" placeholder="https://...">
+      </div>
+      <div class="field">
+        <label>付款提示文字</label>
+        <input id="linePayHint" placeholder="例如：付款完成後請向櫃檯出示成功畫面">
+      </div>
+      <div class="row" style="flex-wrap:wrap">
+        <button class="primary" onclick="saveSettings()">儲存設定</button>
+        <button class="secondary" onclick="addMenuItem()">＋ 新增餐點</button>
+        <button class="secondary" onclick="exportHTML()">⬇ 匯出目前 HTML</button>
+        <button class="danger" onclick="resetData()">恢復預設菜單</button>
+      </div>
+      <hr>
+      <h3>餐點內容管理</h3>
+      <div id="adminList" class="adminList"></div>
+      <hr>
+      <details>
+        <summary><b>Google Sheet Apps Script 範例程式</b></summary>
+        <pre id="gasCode" style="white-space:pre-wrap;background:#fff;padding:12px;border:1px solid var(--line);border-radius:10px;overflow:auto"></pre>
+      </details>
+    </div>
+  </div>
+</div>
+
+<div id="editModal" class="modal" style="z-index:80">
+  <div class="modalBox">
+    <div class="row between"><h2 id="editTitle">編輯餐點</h2><button class="iconBtn" onclick="closeEdit()">✕</button></div>
+    <input type="hidden" id="editId">
+    <div class="field"><label>餐點名稱</label><input id="editName"></div>
+    <div class="field"><label>分類</label><select id="editCategory"></select></div>
+    <div class="field"><label>售價</label><input id="editPrice" type="number" min="0"></div>
+    <div class="field"><label>文字敘述</label><textarea id="editDesc" rows="3"></textarea></div>
+    <div class="field"><label>圖片網址</label><input id="editImage" placeholder="https://..."></div>
+    <div class="field"><label>或上傳圖片（會轉成 Base64 寫入 HTML / localStorage）</label><input id="editFile" type="file" accept="image/*"></div>
+    <button class="primary" onclick="saveMenuItem()">儲存餐點</button>
+  </div>
+</div>
+
+<div id="paymentModal" class="modal" style="z-index:90" onclick="if(event.target===this)closePayment()">
+  <div class="modalBox" style="max-width:480px">
+    <div class="row between"><h2>LINE 付款</h2><button class="iconBtn" onclick="closePayment()">✕</button></div>
+    <div class="payBox">
+      <div class="small">本次應付金額</div>
+      <div id="payAmount" class="payAmount">$0</div>
+      <div id="payOrderId" class="payOrder"></div>
+      <img id="payQrImage" class="payQR" alt="LINE Pay QR Code">
+      <div id="payNoQr" class="payHint" style="display:none">尚未設定 LINE Pay QR Code，請洽櫃檯付款。</div>
+      <p id="payHintText" class="payHint">請使用 LINE Pay 掃描上方 QR Code 完成付款。</p>
+      <a id="payLinkBtn" class="primary" style="display:none;text-decoration:none;padding:13px 18px;margin:5px auto 10px;width:100%" target="_blank" rel="noopener">直接開啟 LINE 付款連結</a>
+      <button class="primary" style="width:100%;padding:13px;margin-top:4px" onclick="finishPayment()">我已完成付款</button>
+      <button class="secondary" style="width:100%;padding:12px;margin-top:8px" onclick="closePayment()">稍後付款 / 關閉</button>
+      <p class="small" style="margin-top:12px">此版本為顯示 QR Code／付款連結模式；付款是否真正成功仍以 LINE Pay 或店家後台交易紀錄為準。</p>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const DEFAULT_MENU = [
+{id:"m1",name:"經典美式早午餐",category:"早午餐",price:220,desc:"炒蛋、德式香腸、培根、脆薯、沙拉與烤吐司",image:"https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?auto=format&fit=crop&w=900&q=80"},
+{id:"m2",name:"酪梨嫩蛋吐司",category:"吐司",price:145,desc:"酪梨泥、嫩炒蛋、生菜與全麥吐司",image:"https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=900&q=80"},
+{id:"m3",name:"燻雞起司可頌",category:"可頌",price:155,desc:"香燻雞胸、起司、生菜與酥香可頌",image:"https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=900&q=80"},
+{id:"m4",name:"厚切培根蛋堡",category:"漢堡",price:165,desc:"厚切培根、煎蛋、起司、生菜與特製醬",image:"https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=900&q=80"},
+{id:"m5",name:"莓果優格碗",category:"輕食",price:130,desc:"希臘優格、莓果、香蕉、燕麥與堅果",image:"https://images.unsplash.com/photo-1511690743698-d9d85f2fbf38?auto=format&fit=crop&w=900&q=80"},
+{id:"m6",name:"楓糖法式吐司",category:"甜點",price:150,desc:"厚片法式吐司、季節水果與楓糖",image:"https://images.unsplash.com/photo-1484723091739-30a097e8f929?auto=format&fit=crop&w=900&q=80"},
+{id:"m7",name:"美式咖啡",category:"飲料",price:70,desc:"中深焙咖啡豆，熱飲／冰飲皆可於備註填寫",image:"https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=900&q=80"},
+{id:"m8",name:"拿鐵咖啡",category:"飲料",price:95,desc:"濃縮咖啡與鮮奶，口感滑順",image:"https://images.unsplash.com/photo-1541167760496-1628856ab772?auto=format&fit=crop&w=900&q=80"}
+];
+let menu = JSON.parse(localStorage.getItem("brunch_menu")||"null") || JSON.parse(JSON.stringify(DEFAULT_MENU));
+let cart = JSON.parse(localStorage.getItem("brunch_cart")||"[]");
+let activeCategory = "全部";
+let adminOK = false;
+let pendingOrder = null;
+const ADMIN_CATEGORIES = ["早午餐","吐司","可頌","漢堡","輕食","甜點","飲料"];
+
+function renderCategorySelect(selected="早午餐"){
+  const existing=[...new Set(menu.map(x=>x.category).filter(Boolean))];
+  const cats=[...new Set([...ADMIN_CATEGORIES,...existing])];
+  editCategory.innerHTML=cats.map(c=>`<option value="${c}">${c}</option>`).join("");
+  editCategory.value=cats.includes(selected)?selected:cats[0];
+}
+
+const GAS_CODE = `function doPost(e) {
+  const SHEET_ID = '請改成你的 Google Sheet ID';
+  const SHEET_NAME = '訂單';
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  let sh = ss.getSheetByName(SHEET_NAME);
+  if (!sh) {
+    sh = ss.insertSheet(SHEET_NAME);
+    sh.appendRow(['訂單時間','訂單編號','桌號/取餐號','顧客姓名','餐點明細','總金額','整單備註','付款方式','付款狀態','狀態']);
+  }
+  const data = JSON.parse(e.postData.contents);
+  const detail = data.items.map(x =>
+    x.name + ' x' + x.qty + (x.note ? '（' + x.note + '）' : '')
+  ).join('\\n');
+  sh.appendRow([
+    new Date(),
+    data.orderId,
+    data.tableNo || '',
+    data.customerName || '',
+    detail,
+    data.total,
+    data.orderNote || '',
+    data.paymentMethod || 'LINE Pay',
+    data.paymentStatus || '待付款',
+    '待製作'
+  ]);
+  return ContentService
+    .createTextOutput(JSON.stringify({ok:true}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function doGet() {
+  return ContentService
+    .createTextOutput(JSON.stringify({ok:true,message:'Brunch order API ready'}))
+    .setMimeType(ContentService.MimeType.JSON);
+}`;
+
+function persist(){localStorage.setItem("brunch_menu",JSON.stringify(menu));localStorage.setItem("brunch_cart",JSON.stringify(cart))}
+function money(n){return "$"+Number(n).toLocaleString("zh-TW")}
+function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.style.display="block";setTimeout(()=>t.style.display="none",2200)}
+function renderCategories(){
+  const cats=["全部",...new Set(menu.map(x=>x.category))];
+  categoryBar.innerHTML=cats.map(c=>`<button class="chip ${c===activeCategory?'active':''}" onclick="setCategory('${esc(c)}')">${c}</button>`).join("");
+}
+function setCategory(c){activeCategory=c;renderCategories();renderMenu()}
+function esc(s){return String(s).replace(/\\/g,"\\\\").replace(/'/g,"\\'").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+function renderMenu(){
+  const data=activeCategory==="全部"?menu:menu.filter(x=>x.category===activeCategory);
+  menuGrid.innerHTML=data.length?data.map(x=>`
+  <article class="card">
+    <img src="${x.image}" alt="${x.name}" onerror="this.src='data:image/svg+xml;charset=UTF-8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22800%22 height=%22500%22><rect width=%22100%%22 height=%22100%%22 fill=%22%23ddd6ca%22/><text x=%2250%%22 y=%2250%%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2234%22 fill=%22%237e786f%22>Brunch</text></svg>'">
+    <div class="cardBody">
+      <h3>${x.name}</h3><div class="desc">${x.desc}</div>
+      <div class="priceRow"><span class="price">${money(x.price)}</span><button class="addBtn" onclick="addToCart('${x.id}')">加入</button></div>
+    </div>
+  </article>`).join(""):`<div class="empty">目前沒有餐點</div>`;
+}
+function addToCart(id){
+  const m=menu.find(x=>x.id===id); if(!m)return;
+  const same=cart.find(x=>x.id===id && !x.note);
+  if(same)same.qty++; else cart.push({id:m.id,name:m.name,price:m.price,qty:1,note:""});
+  persist();renderCart();toast("已加入："+m.name);
+}
+function pickRandom(arr){return arr[Math.floor(Math.random()*arr.length)]}
+function toggleMoodPanel(){
+  const panel=document.getElementById("moodPanel");
+  panel.classList.toggle("show");
+  if(panel.classList.contains("show")) panel.scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+function moodOrder(type){
+  const drinks=menu.filter(x=>x.category==="飲料");
+  const mains=menu.filter(x=>x.category!=="飲料" && x.category!=="甜點");
+  if(!drinks.length || !mains.length){toast("請先在後台建立主餐與飲料餐點");return}
+  const rules={
+    rain:{icon:"🌧️",title:"雨天暖心組",mainCats:["早午餐","漢堡","可頌"],drinkWords:["拿鐵","奶","咖啡"],text:"雨天就吃得暖一點、飽足一點。"},
+    cloudy:{icon:"☁️",title:"陰天舒服組",mainCats:["吐司","可頌","早午餐"],drinkWords:["拿鐵","咖啡","茶"],text:"陰天適合不過度厚重、但很有滿足感的組合。"},
+    sunny:{icon:"☀️",title:"晴天清爽組",mainCats:["輕食","吐司","早午餐"],drinkWords:["美式","茶","果","冰"],text:"晴天選清爽主餐，配一杯提神飲料。"}
+  };
+  const r=rules[type];
+  let mainPool=mains.filter(x=>r.mainCats.includes(x.category)); if(!mainPool.length)mainPool=mains;
+  let drinkPool=drinks.filter(x=>r.drinkWords.some(w=>(x.name+x.desc).includes(w))); if(!drinkPool.length)drinkPool=drinks;
+  const main=pickRandom(mainPool), drink=pickRandom(drinkPool);
+  moodResult.innerHTML=`<b>${r.icon} ${r.title}</b><div class="small" style="margin-top:3px">${r.text}</div><div class="moodPair"><div><span class="small">推薦主餐</span><br><b>${main.name}</b><br>${money(main.price)}</div><div><span class="small">推薦飲料</span><br><b>${drink.name}</b><br>${money(drink.price)}</div></div><div class="row"><button class="primary" style="flex:1" onclick="addMoodPair('${main.id}','${drink.id}')">整組加入餐點</button><button class="secondary" onclick="moodOrder('${type}')">換一組</button></div>`;
+  moodResult.classList.add("show");
+}
+function addMoodPair(mainId,drinkId){addToCart(mainId);addToCart(drinkId);toast("心情套餐已加入餐點");}
+function renderCart(){
+  cartBadge.textContent=cart.reduce((a,b)=>a+b.qty,0);
+  if(!cart.length){cartList.innerHTML='<div class="empty">尚未加入餐點</div>';totalPrice.textContent="$0";return}
+  cartList.innerHTML=cart.map((x,i)=>`<div class="cartItem">
+    <div class="row between"><div><strong>${x.name}</strong><span class="small">${money(x.price)} / 份</span></div>
+      <button class="danger" style="padding:7px 10px" onclick="removeCart(${i})">刪除</button></div>
+    <div class="row between" style="margin-top:8px"><div class="qty"><button onclick="changeQty(${i},-1)">−</button><b>${x.qty}</b><button onclick="changeQty(${i},1)">＋</button></div><b>${money(x.price*x.qty)}</b></div>
+    <input class="note" value="${x.note||''}" onchange="changeNote(${i},this.value)" placeholder="單項備註：去冰、醬另放、不加洋蔥…">
+  </div>`).join("");
+  totalPrice.textContent=money(cart.reduce((s,x)=>s+x.price*x.qty,0));
+}
+function changeQty(i,d){cart[i].qty+=d;if(cart[i].qty<=0)cart.splice(i,1);persist();renderCart()}
+function changeNote(i,v){cart[i].note=v;persist()}
+function removeCart(i){cart.splice(i,1);persist();renderCart()}
+function openCart(){renderCart();cartDrawer.classList.add("show")}
+function closeCart(){cartDrawer.classList.remove("show")}
+async function submitOrder(){
+  if(!cart.length)return toast("請先選擇餐點");
+  const url=localStorage.getItem("brunch_gas_url")||"";
+  if(!url)return toast("尚未在後台設定 Google Apps Script URL");
+  const payload={
+    orderId:"B"+Date.now(),
+    createdAt:new Date().toISOString(),
+    tableNo:tableNo.value.trim(),
+    customerName:customerName.value.trim(),
+    orderNote:orderNote.value.trim(),
+    total:cart.reduce((s,x)=>s+x.price*x.qty,0),
+    paymentMethod:"LINE Pay",
+    paymentStatus:"待付款",
+    items:cart.map(x=>({...x}))
+  };
+  submitBtn.disabled=true; submitBtn.textContent="訂單送出中…";
+  try{
+    const res=await fetch(url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)});
+    if(!res.ok)throw new Error("HTTP "+res.status);
+    pendingOrder=payload;
+    cart=[];persist();renderCart();tableNo.value="";customerName.value="";orderNote.value="";
+    closeCart();
+    openPayment(payload);
+    toast("訂單已送出，請完成 LINE 付款");
+  }catch(err){
+    console.error(err); toast("送出失敗，請檢查 Apps Script 部署與網址");
+  }finally{submitBtn.disabled=false;submitBtn.textContent="確認餐點並前往付款"}
+}
+function openPayment(order){
+  const qr=localStorage.getItem("brunch_line_qr")||"";
+  const link=localStorage.getItem("brunch_line_pay_link")||"";
+  const hint=localStorage.getItem("brunch_line_pay_hint")||"付款完成後請向櫃檯出示成功畫面。";
+  payAmount.textContent=money(order.total);
+  payOrderId.textContent="訂單編號："+order.orderId;
+  payHintText.textContent="請使用 LINE Pay 掃描上方 QR Code 完成付款。 "+hint;
+  if(qr){
+    payQrImage.src=qr;payQrImage.style.display="block";payNoQr.style.display="none";
+  }else{
+    payQrImage.removeAttribute("src");payQrImage.style.display="none";payNoQr.style.display="block";
+  }
+  if(link){payLinkBtn.href=link;payLinkBtn.style.display="block"}else{payLinkBtn.removeAttribute("href");payLinkBtn.style.display="none"}
+  paymentModal.classList.add("show");
+}
+function closePayment(){paymentModal.classList.remove("show")}
+function finishPayment(){
+  closePayment();
+  toast("已完成付款流程，謝謝您的訂購");
+  pendingOrder=null;
+}
+function openAdmin(){adminModal.classList.add("show");gasCode.textContent=GAS_CODE}
+function closeAdmin(){adminModal.classList.remove("show")}
+function adminLogin(){
+  const saved=localStorage.getItem("brunch_admin_pass")||"admin1234";
+  if(adminPass.value!==saved)return toast("密碼錯誤");
+  adminOK=true;loginArea.style.display="none";adminArea.style.display="block";
+  gasUrl.value=localStorage.getItem("brunch_gas_url")||"";
+  lineQrUrl.value=localStorage.getItem("brunch_line_qr")||"";
+  linePayLink.value=localStorage.getItem("brunch_line_pay_link")||"";
+  linePayHint.value=localStorage.getItem("brunch_line_pay_hint")||"付款完成後請向櫃檯出示成功畫面。";
+  previewLineQR(lineQrUrl.value);
+  renderAdmin();
+}
+async function saveSettings(){
+  localStorage.setItem("brunch_gas_url",gasUrl.value.trim());
+  let qr=lineQrUrl.value.trim();
+  if(lineQrFile.files[0]) qr=await fileToDataURL(lineQrFile.files[0]);
+  localStorage.setItem("brunch_line_qr",qr);
+  localStorage.setItem("brunch_line_pay_link",linePayLink.value.trim());
+  localStorage.setItem("brunch_line_pay_hint",linePayHint.value.trim());
+  lineQrUrl.value=qr;
+  previewLineQR(qr);
+  toast("Google Sheet 與 LINE 付款設定已儲存");
+}
+function previewLineQR(src){
+  if(src){lineQrPreview.src=src;lineQrPreview.style.display="block"}else{lineQrPreview.removeAttribute("src");lineQrPreview.style.display="none"}
+}
+async function previewLineQRFile(file){if(!file)return;const src=await fileToDataURL(file);previewLineQR(src)}
+function renderAdmin(){
+  adminList.innerHTML=menu.map((x,i)=>`<div class="adminItem row">
+    <img src="${x.image}" alt="">
+    <div style="flex:1"><b>${x.name}</b><div class="small">${x.category}｜${money(x.price)}</div><div class="small">${x.desc}</div></div>
+    <div><button class="secondary" onclick="editMenuItem('${x.id}')">編輯</button><button class="danger" onclick="deleteMenuItem('${x.id}')">刪除</button></div>
+  </div>`).join("");
+}
+function addMenuItem(){
+  editId.value="";editTitle.textContent="新增餐點";editName.value="";renderCategorySelect("早午餐");editPrice.value="";editDesc.value="";editImage.value="";editFile.value="";editModal.classList.add("show");
+}
+function editMenuItem(id){
+  const x=menu.find(m=>m.id===id);if(!x)return;
+  editId.value=x.id;editTitle.textContent="編輯餐點";editName.value=x.name;renderCategorySelect(x.category);editPrice.value=x.price;editDesc.value=x.desc;editImage.value=x.image;editFile.value="";editModal.classList.add("show");
+}
+function closeEdit(){editModal.classList.remove("show")}
+async function saveMenuItem(){
+  const id=editId.value||("m"+Date.now());
+  let image=editImage.value.trim();
+  const f=editFile.files[0];
+  if(f) image=await fileToDataURL(f);
+  const obj={id,name:editName.value.trim(),category:editCategory.value.trim()||"其他",price:Number(editPrice.value||0),desc:editDesc.value.trim(),image:image||""};
+  if(!obj.name)return toast("請輸入餐點名稱");
+  const idx=menu.findIndex(x=>x.id===id);
+  if(idx>=0)menu[idx]=obj;else menu.push(obj);
+  persist();renderMenu();renderCategories();renderAdmin();closeEdit();toast("餐點已儲存");
+}
+function fileToDataURL(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file)})}
+function deleteMenuItem(id){if(!confirm("確定刪除這個餐點？"))return;menu=menu.filter(x=>x.id!==id);persist();renderMenu();renderCategories();renderAdmin()}
+function resetData(){if(!confirm("確定恢復預設菜單？目前修改內容會被覆蓋。"))return;menu=JSON.parse(JSON.stringify(DEFAULT_MENU));persist();renderMenu();renderCategories();renderAdmin();toast("已恢復預設菜單")}
+function exportHTML(){
+  const clone=document.documentElement.cloneNode(true);
+  const scripts=clone.querySelectorAll("script");
+  let src=scripts[scripts.length-1].textContent;
+  const menuLiteral=JSON.stringify(menu).replace(/</g,"\\u003c");
+  const urlLiteral=JSON.stringify(localStorage.getItem("brunch_gas_url")||"");
+  const qrLiteral=JSON.stringify(localStorage.getItem("brunch_line_qr")||"");
+  const payLinkLiteral=JSON.stringify(localStorage.getItem("brunch_line_pay_link")||"");
+  const payHintLiteral=JSON.stringify(localStorage.getItem("brunch_line_pay_hint")||"");
+  src=src.replace(/const DEFAULT_MENU = \[[\s\S]*?\];\nlet menu = JSON\.parse\(localStorage\.getItem\("brunch_menu"\)\|\|"null"\) \|\| JSON\.parse\(JSON\.stringify\(DEFAULT_MENU\)\);/,
+`const DEFAULT_MENU = ${menuLiteral};
+let menu = JSON.parse(localStorage.getItem("brunch_menu")||"null") || JSON.parse(JSON.stringify(DEFAULT_MENU));`);
+  scripts[scripts.length-1].textContent=src;
+  const bootstrap=clone.ownerDocument.createElement("script");
+  bootstrap.textContent=`if(!localStorage.getItem("brunch_gas_url") && ${urlLiteral}) localStorage.setItem("brunch_gas_url",${urlLiteral});
+if(!localStorage.getItem("brunch_line_qr") && ${qrLiteral}) localStorage.setItem("brunch_line_qr",${qrLiteral});
+if(!localStorage.getItem("brunch_line_pay_link") && ${payLinkLiteral}) localStorage.setItem("brunch_line_pay_link",${payLinkLiteral});
+if(!localStorage.getItem("brunch_line_pay_hint") && ${payHintLiteral}) localStorage.setItem("brunch_line_pay_hint",${payHintLiteral});`;
+  clone.querySelector("body").appendChild(bootstrap);
+  const blob=new Blob(["<!DOCTYPE html>\n"+clone.outerHTML],{type:"text/html;charset=utf-8"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="brunch_order_system_export.html";a.click();URL.revokeObjectURL(a.href);
+}
+renderCategories();renderMenu();renderCart();
+</script>
+</body>
+</html>
