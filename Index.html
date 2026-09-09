@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<title>鋼珠別鬧了！平衡尋寶大作戰</title>
+<style>
+:root{--bg:#0b1117;--gold:#ffd166;--danger:#ff5d73;--ok:#78e38b;--text:#edf4f7;--fun:#8ee3ff;--pink:#ff9fcb}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:radial-gradient(circle at 50% 8%,#243846 0,#101820 45%,#080d12 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif;overflow:hidden}
+body{display:flex;justify-content:center;align-items:flex-start;padding:env(safe-area-inset-top) 10px env(safe-area-inset-bottom)}
+.app{width:min(100%,580px);padding-top:8px;display:flex;flex-direction:column;gap:8px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.title{font-weight:950;letter-spacing:.02em;font-size:clamp(18px,4.6vw,25px);text-shadow:0 2px 0 #000,0 0 14px #ffd16655}.subtitle{font-size:11px;color:#ffe7a8;font-weight:800;margin-top:2px}
+.stats{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.pill{padding:7px 9px;border-radius:999px;background:#131e27dd;border:1px solid #ffffff1c;font-weight:850;font-size:12px;white-space:nowrap;box-shadow:inset 0 0 0 1px #0004}.pill b{color:#ffd166}
+.board-wrap{width:100%;display:flex;justify-content:center}.board{position:relative;width:min(96vw,560px);height:66dvh;max-height:720px;min-height:430px;border-radius:23px;overflow:hidden;touch-action:none;background:linear-gradient(135deg,#43544e,#26352f 58%,#1c2925);border:10px solid #5b3a24;box-shadow:0 22px 50px #0009,inset 0 0 0 4px #2d1b11,inset 0 0 45px #000b}.board:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,#ffffff06 0 1px,transparent 1px 34px),repeating-linear-gradient(0deg,#ffffff04 0 1px,transparent 1px 34px),radial-gradient(circle at 50% 50%,transparent 45%,#0008 100%);pointer-events:none}
+canvas{position:absolute;inset:0;width:100%;height:100%}.center-msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:28px;pointer-events:none}.msg-card{max-width:88%;background:#091116e8;border:1px solid #ffffff28;border-radius:18px;padding:16px 18px;backdrop-filter:blur(8px);box-shadow:0 12px 30px #0009}.msg-card b{display:block;font-size:20px;margin-bottom:7px}.msg-card small{color:#c9d5db;line-height:1.55}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:8px}button{border:0;border-radius:15px;padding:12px 10px;font-size:14px;font-weight:900;color:#111;background:linear-gradient(#ffe395,#ffc84e);box-shadow:0 6px 16px #0005,inset 0 1px #fff9;touch-action:manipulation}button.secondary{background:linear-gradient(#cfdae1,#9fb1bc)}
+.hint{text-align:center;font-size:11.5px;line-height:1.42;color:#c9d7de;min-height:32px;background:#0b141bcc;border:1px dashed #ffffff24;border-radius:12px;padding:7px 10px}.funline{text-align:center;font-weight:900;font-size:12px;color:#ffe395;min-height:18px;text-shadow:0 1px 0 #000}.touch-pad{display:grid;grid-template-columns:repeat(3,51px);grid-template-rows:repeat(2,42px);gap:5px;justify-content:center;opacity:.78;user-select:none}.touch-pad button{padding:0;border-radius:12px;background:#26333c;color:#fff;box-shadow:none;border:1px solid #ffffff18;font-size:19px}.touch-pad .up{grid-column:2}.touch-pad .left{grid-column:1}.touch-pad .down{grid-column:2}.touch-pad .right{grid-column:3}
+.toast{position:fixed;left:50%;top:11%;transform:translate(-50%,-10px);padding:9px 15px;border-radius:999px;font-weight:900;background:#071019e9;border:1px solid #ffffff33;opacity:0;pointer-events:none;transition:.18s;z-index:20;white-space:nowrap}.toast.show{opacity:1;transform:translate(-50%,0)}
+@media (max-height:700px){.board{height:62dvh;min-height:360px}.app{gap:5px}.hint{padding:5px 8px;min-height:26px}.touch-pad{grid-template-columns:repeat(3,46px);grid-template-rows:repeat(2,36px)}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top"><div><div class="title">🤣 鋼珠別鬧了！</div><div class="subtitle">平衡尋寶大作戰・手機歪一點，人生精彩一點</div></div><div class="stats"><div class="pill">🗺️ <b>第<span id="level">1</span>關</b></div><div class="pill">💰 <span id="score">0</span>分</div><div class="pill">🔥 <span id="combo">x1</span></div><div class="pill">⏰ <span id="time">60</span>s</div><div class="pill">📡 <span id="sensorState">未啟用</span></div></div></div>
+  <div class="board-wrap"><div class="board" id="board"><canvas id="game"></canvas><div class="center-msg" id="overlay"><div class="msg-card"><b>📱 手機一歪，鋼珠就開工</b><small>🎁 寶箱：錢錢自己送上門。<br>💣 炸彈：碰一下，分數先去旁邊哭。<br>🕳️ 黑洞：免費送你回出生點。<br>🧲 磁鐵：它不是愛你，只是想吸你過去。<br>🟪 斜坡：免費加速，但方向不保證。</small></div></div></div></div>
+  <div class="controls"><button id="sensorBtn">📱 叫醒手機陀螺儀</button><button class="secondary" id="restartBtn">↻ 我不服，再來一次</button></div>
+  <div class="hint" id="hint">先把手機拿穩，再按「叫醒手機陀螺儀」。校正時別手抖，不然鋼珠會以為地球歪了。</div><div class="funline" id="funline">今日任務：不要讓鋼珠比你先失控。</div>
+  <div class="touch-pad" id="touchPad"><button class="up" data-dir="up">▲</button><button class="left" data-dir="left">◀</button><button class="down" data-dir="down">▼</button><button class="right" data-dir="right">▶</button></div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+(()=>{
+const canvas=document.getElementById('game'),board=document.getElementById('board'),ctx=canvas.getContext('2d');
+const scoreEl=document.getElementById('score'),timeEl=document.getElementById('time'),levelEl=document.getElementById('level'),comboEl=document.getElementById('combo'),overlay=document.getElementById('overlay'),sensorBtn=document.getElementById('sensorBtn'),restartBtn=document.getElementById('restartBtn'),hint=document.getElementById('hint'),toast=document.getElementById('toast'),sensorState=document.getElementById('sensorState'),funline=document.getElementById('funline');
+let W=0,H=0,dpr=1,last=performance.now(),running=false,score=0,timeLeft=60,lastSecond=performance.now(),level=1,combo=1,lastChestAt=0,chestsTaken=0;
+let tilt={x:0,y:0},base={beta:0,gamma:0},sensorActive=false,sensorSeen=false,keyTilt={x:0,y:0},screenAngle=0,lastWallSound=0,lastBoundarySound=0,lastRampSound=0,lastMagnetSound=0;
+let ball={x:0,y:0,vx:0,vy:0,r:14},chests=[],bombs=[],walls=[],holes=[],magnets=[],ramps=[],particles=[];
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+const FUN={
+  chest:['寶箱表示：今天的財運比技術好。','這不是貪心，是高效率搜刮。','連吃寶箱中，請勿打擾發財。','鋼珠開始懷疑自己其實是理財專員。'],
+  bomb:['恭喜獲得「我剛剛為什麼要往那邊？」成就。','炸彈：感謝您的主動拜訪。','分數下降的速度，比鋼珠還快。','這顆不是寶箱，只是長得很有存在感。'],
+  hole:['地下室一日遊，已自動辦理退房。','黑洞說：歡迎再次光臨。','這不是失誤，是深入探索地形。','鋼珠短暫離線，人生重新連線。']
+};
+function randomFun(kind){const a=FUN[kind]||['鋼珠持續努力中。'];return a[Math.floor(Math.random()*a.length)]}
+function setFunLine(t){funline.textContent=t}
+
+let audioCtx=null,masterGain=null,compressor=null;
+function initAudio(){
+  try{
+    if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==='suspended') audioCtx.resume();
+    if(!masterGain){
+      masterGain=audioCtx.createGain(); masterGain.gain.value=.78;
+      compressor=audioCtx.createDynamicsCompressor();
+      compressor.threshold.value=-18; compressor.knee.value=16; compressor.ratio.value=4;
+      compressor.attack.value=.003; compressor.release.value=.18;
+      masterGain.connect(compressor).connect(audioCtx.destination);
+    }
+  }catch(e){}
+}
+function rand(a,b){return a+Math.random()*(b-a)}
+function env(g,t,peak,attack,hold,release){
+  g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(.0001,t);
+  g.gain.exponentialRampToValueAtTime(Math.max(.0002,peak),t+attack);
+  g.gain.setValueAtTime(Math.max(.0002,peak),t+attack+hold);
+  g.gain.exponentialRampToValueAtTime(.0001,t+attack+hold+release);
+}
+function osc(freq,dur,type='sine',vol=.08,slideTo=null,when=0,dest=null){
+  initAudio(); if(!audioCtx||!masterGain)return;
+  const t=audioCtx.currentTime+when,o=audioCtx.createOscillator(),g=audioCtx.createGain();
+  o.type=type; o.frequency.setValueAtTime(freq,t);
+  if(slideTo) o.frequency.exponentialRampToValueAtTime(Math.max(25,slideTo),t+dur);
+  env(g,t,vol,.004,Math.max(0,dur*.08),Math.max(.02,dur*.86));
+  o.connect(g).connect(dest||masterGain); o.start(t); o.stop(t+dur+.04);
+}
+function noiseBurst(dur=.12,vol=.08,low=80,high=9000,when=0){
+  initAudio(); if(!audioCtx||!masterGain)return;
+  const t=audioCtx.currentTime+when,len=Math.max(1,Math.floor(audioCtx.sampleRate*dur));
+  const buf=audioCtx.createBuffer(1,len,audioCtx.sampleRate),d=buf.getChannelData(0);
+  for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*(1-i/len);
+  const src=audioCtx.createBufferSource(),hp=audioCtx.createBiquadFilter(),lp=audioCtx.createBiquadFilter(),g=audioCtx.createGain();
+  hp.type='highpass'; hp.frequency.value=low; lp.type='lowpass'; lp.frequency.value=high;
+  env(g,t,vol,.002,0,Math.max(.02,dur*.96)); src.buffer=buf;
+  src.connect(hp).connect(lp).connect(g).connect(masterGain); src.start(t); src.stop(t+dur+.03);
+}
+function metallicHit(strength=.7,when=0){
+  const base=rand(150,205),v=.045*strength;
+  noiseBurst(.045,.07*strength,650,6500,when);
+  osc(base,.12,'triangle',v,base*.62,when);
+  osc(base*2.73,.055,'sine',v*.42,base*2.2,when+.004);
+  osc(base*4.18,.035,'sine',v*.25,base*3.4,when+.006);
+}
+function coinClink(when=0,pitch=1){
+  noiseBurst(.026,.035,1800,11000,when);
+  osc(1850*pitch,.13,'sine',.055,1380*pitch,when);
+  osc(2780*pitch,.08,'sine',.03,2250*pitch,when+.008);
+}
+function playSound(kind){
+  initAudio(); if(!audioCtx)return;
+  if(kind==='chest'){
+    // 木箱卡榫 + 金屬金幣散落
+    noiseBurst(.055,.055,180,1800,0);
+    osc(110,.09,'triangle',.045,78,0);
+    coinClink(.055,rand(.94,1.04)); coinClink(.115,rand(1.08,1.18)); coinClink(.19,rand(.86,.96));
+  }else if(kind==='bomb'){
+    // 短促爆裂、碎片與低頻衝擊
+    noiseBurst(.16,.19,45,9500,0);
+    noiseBurst(.42,.085,30,1200,.025);
+    osc(92,.34,'sine',.19,36,0);
+    osc(185,.17,'sawtooth',.055,58,.012);
+    for(let i=0;i<4;i++) metallicHit(rand(.25,.5),.055+i*.032+rand(0,.02));
+  }else if(kind==='hole'){
+    // 掉落、空腔與遠去的低頻
+    noiseBurst(.10,.035,120,2200,0);
+    osc(330,.44,'sine',.075,72,0);
+    osc(155,.54,'triangle',.055,38,.045);
+  }else if(kind==='wall'){
+    // 鋼珠撞木／牆面的實體敲擊
+    metallicHit(rand(.65,.95),0);
+    osc(rand(85,115),.07,'sine',.025,65,0);
+  }else if(kind==='ramp'){
+    // 鋼珠快速滾過斜坡的摩擦與加速
+    noiseBurst(.10,.026,550,4200,0);
+    osc(240,.12,'triangle',.025,420,0);
+  }else if(kind==='magnet'){
+    // 低頻磁力嗡鳴，帶一點金屬共振
+    osc(84,.17,'sine',.045,72,0);
+    osc(168,.13,'triangle',.018,145,.015);
+    noiseBurst(.055,.012,900,3600,.01);
+  }else if(kind==='level'){
+    // 比電子嗶聲更像實體遊戲機的獎勵鈴聲
+    coinClink(0,.82); coinClink(.09,.98); coinClink(.18,1.18);
+    osc(392,.23,'triangle',.035,523,.10); osc(523,.28,'sine',.038,784,.20);
+  }
+}
+function resize(){const r=board.getBoundingClientRect();dpr=Math.min(devicePixelRatio||1,2);W=r.width-20;H=r.height-20;canvas.width=Math.floor(W*dpr);canvas.height=Math.floor(H*dpr);canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);if(!ball.x){ball.x=W/2;ball.y=H/2}}
+new ResizeObserver(resize).observe(board);resize();
+function toastMsg(text){toast.textContent=text;toast.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>toast.classList.remove('show'),760)}
+function randomSpot(radius=24,extra=0){for(let t=0;t<400;t++){let p={x:35+Math.random()*(W-70),y:35+Math.random()*(H-70)};if(Math.hypot(p.x-ball.x,p.y-ball.y)<85)continue;let all=[...chests,...bombs,...holes,...magnets];if(all.some(o=>Math.hypot(p.x-o.x,p.y-o.y)<radius+(o.r||24)+18+extra))continue;if(walls.some(r=>p.x>r.x-35&&p.x<r.x+r.w+35&&p.y>r.y-35&&p.y<r.y+r.h+35))continue;return p}return{x:55,y:55}}
+function baseWalls(){return[{x:W*.13,y:H*.27,w:W*.26,h:12},{x:W*.58,y:H*.15,w:12,h:H*.25},{x:W*.56,y:H*.63,w:W*.27,h:12},{x:W*.24,y:H*.73,w:12,h:H*.17}]}
+function setupLevel(n,resetScore=false){level=n;if(resetScore){score=0}scoreEl.textContent=score;levelEl.textContent=level;combo=1;comboEl.textContent='x1';lastChestAt=0;chestsTaken=0;timeLeft=60;timeEl.textContent=timeLeft;ball={x:W/2,y:H/2,vx:0,vy:0,r:14};chests=[];bombs=[];walls=baseWalls();holes=[];magnets=[];ramps=[];particles=[];
+  const chestCount=Math.min(4+n,7),bombCount=Math.min(2+n,6),holeCount=n>=2?Math.min(n-1,3):0,magnetCount=n>=2?1:0,rampCount=n>=3?Math.min(n-2,2):0;
+  for(let i=0;i<chestCount;i++){let p=randomSpot();chests.push({...p,r:19,alive:true,pulse:Math.random()*6})}
+  for(let i=0;i<bombCount;i++){let p=randomSpot();bombs.push({...p,r:18,alive:true,pulse:Math.random()*6,vx:n>=3?(Math.random()>.5?1:-1)*(18+n*7):0,vy:n>=3?(Math.random()>.5?1:-1)*(15+n*6):0})}
+  for(let i=0;i<holeCount;i++){let p=randomSpot(22,10);holes.push({...p,r:20})}
+  for(let i=0;i<magnetCount;i++){let p=randomSpot(25,10);magnets.push({...p,r:24,strength:120+n*20})}
+  for(let i=0;i<rampCount;i++){ramps.push({x:W*(.14+i*.48),y:H*(.48-i*.18),w:W*.22,h:H*.12,fx:i%2?140:-140,fy:i%2?-40:60})}
+  last=performance.now();lastSecond=performance.now();running=true;overlay.style.display='none';toastMsg('🚪 第 '+level+' 關開門！鋼珠又要加班了');setFunLine('第 '+level+' 關：先找寶箱，再假裝沒看到炸彈。');
+}
+function restart(){setupLevel(1,true)}
+function getScreenAngle(){const a=(screen.orientation&&typeof screen.orientation.angle==='number')?screen.orientation.angle:(typeof window.orientation==='number'?window.orientation:0);return ((a%360)+360)%360}
+function applyOrientation(beta,gamma){
+  if(beta==null||gamma==null)return;
+  sensorSeen=true;screenAngle=getScreenAngle();
+  if(!sensorActive){base.beta=beta;base.gamma=gamma;sensorActive=true;sensorState.textContent='已啟用';sensorState.style.color='#78e38b';}
+  let gx=gamma-base.gamma, gy=beta-base.beta;
+  // 依螢幕旋轉方向修正 X/Y 軸，橫拿手機也能正常控制
+  let x=gx,y=gy;
+  if(screenAngle===90){x=gy;y=-gx}else if(screenAngle===270){x=-gy;y=gx}else if(screenAngle===180){x=-gx;y=-gy}
+  tilt.x=clamp(x/18,-1.35,1.35);
+  tilt.y=clamp(y/18,-1.35,1.35);
+}
+function onOrientation(e){applyOrientation(e.beta,e.gamma)}
+async function enableSensor(){
+  initAudio();
+  try{
+    if(typeof DeviceOrientationEvent==='undefined')throw new Error('not supported');
+    if(typeof DeviceOrientationEvent.requestPermission==='function'){
+      const p=await DeviceOrientationEvent.requestPermission();
+      if(p!=='granted')throw new Error('permission denied');
+    }
+    sensorActive=false;sensorSeen=false;tilt.x=tilt.y=0;
+    window.removeEventListener('deviceorientation',onOrientation,true);
+    window.removeEventListener('deviceorientationabsolute',onOrientation,true);
+    window.addEventListener('deviceorientation',onOrientation,true);
+    window.addEventListener('deviceorientationabsolute',onOrientation,true);
+    sensorBtn.textContent='✓ 陀螺儀醒了，別再戳它';sensorState.textContent='等待資料';sensorState.style.color='#ffd166';
+    hint.textContent='陀螺儀已起床。先穩住手機 1 秒，再慢慢傾斜；太激情，鋼珠會直接離家出走。';
+    restart();
+    setTimeout(()=>{
+      if(!sensorSeen){sensorState.textContent='無資料';sensorState.style.color='#ff7b8c';hint.textContent='手機裝死，沒有回傳傾斜資料。請用 HTTPS（例如 GitHub Pages）並允許「動作與方向」權限；不然只能用方向鍵硬撐。'}
+      else{hint.textContent='感測器正常上工！左右／前後傾斜即可控制；若方向很有自己的想法，再按一次按鈕重新校正。'}
+    },1600);
+  }catch(e){
+    sensorState.textContent='不可用';sensorState.style.color='#ff7b8c';
+    hint.textContent='抓不到手機方向感測器。請改用 HTTPS 網址及 Safari/Chrome；目前先用方向鍵，別讓鋼珠知道我們沒陀螺儀。';restart();
+  }
+}
+sensorBtn.addEventListener('click',enableSensor);restartBtn.addEventListener('click',()=>{initAudio();restart()});document.addEventListener('pointerdown',initAudio,{once:true});
+document.querySelectorAll('#touchPad button').forEach(b=>{const d=b.dataset.dir,down=e=>{e.preventDefault();initAudio();if(!running)restart();if(d==='left')keyTilt.x=-1;if(d==='right')keyTilt.x=1;if(d==='up')keyTilt.y=-1;if(d==='down')keyTilt.y=1},up=e=>{e.preventDefault();if(d==='left'||d==='right')keyTilt.x=0;if(d==='up'||d==='down')keyTilt.y=0};b.addEventListener('pointerdown',down);b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);b.addEventListener('pointerleave',up)});
+function circleRectCollide(c,r){let nx=clamp(c.x,r.x,r.x+r.w),ny=clamp(c.y,r.y,r.y+r.h),dx=c.x-nx,dy=c.y-ny;return dx*dx+dy*dy<c.r*c.r?{dx,dy}:null}
+function burst(x,y,kind){for(let i=0;i<12;i++)particles.push({x,y,vx:(Math.random()-.5)*180,vy:(Math.random()-.5)*180,life:.6,size:2+Math.random()*4,kind})}
+function resetBall(penalty=0){score+=penalty;scoreEl.textContent=score;combo=1;comboEl.textContent='x1';ball.x=W/2;ball.y=H/2;ball.vx=0;ball.vy=0}
+function physics(dt,now){if(!running)return;let ax=(Math.abs(keyTilt.x)>.01?keyTilt.x:tilt.x)*460,ay=(Math.abs(keyTilt.y)>.01?keyTilt.y:tilt.y)*460;
+  magnets.forEach(m=>{let dx=m.x-ball.x,dy=m.y-ball.y,d=Math.max(35,Math.hypot(dx,dy));if(d<150){let f=m.strength*(1-d/150);ax+=dx/d*f;ay+=dy/d*f;if(d<ball.r+m.r+8&&performance.now()-lastMagnetSound>350){playSound('magnet');lastMagnetSound=performance.now()}}});
+  ramps.forEach(r=>{if(ball.x>r.x&&ball.x<r.x+r.w&&ball.y>r.y&&ball.y<r.y+r.h){ax+=r.fx;ay+=r.fy;if(performance.now()-lastRampSound>650){playSound('ramp');lastRampSound=performance.now()}}});
+  ball.vx+=ax*dt;ball.vy+=ay*dt;const drag=Math.pow(.985,dt*60);ball.vx*=drag;ball.vy*=drag;let sp=Math.hypot(ball.vx,ball.vy),max=520+level*20;if(sp>max){ball.vx*=max/sp;ball.vy*=max/sp}ball.x+=ball.vx*dt;ball.y+=ball.vy*dt;
+  const bounce=.61;let boundaryHit=false;if(ball.x<ball.r){ball.x=ball.r;ball.vx=Math.abs(ball.vx)*bounce;boundaryHit=true}if(ball.x>W-ball.r){ball.x=W-ball.r;ball.vx=-Math.abs(ball.vx)*bounce;boundaryHit=true}if(ball.y<ball.r){ball.y=ball.r;ball.vy=Math.abs(ball.vy)*bounce;boundaryHit=true}if(ball.y>H-ball.r){ball.y=H-ball.r;ball.vy=-Math.abs(ball.vy)*bounce;boundaryHit=true}if(boundaryHit&&performance.now()-lastBoundarySound>120){playSound('wall');lastBoundarySound=performance.now();if(Math.random()<.12)setFunLine('🧱 牆：別撞了，我也有感覺。')}
+  walls.forEach(r=>{if(!circleRectCollide(ball,r))return;let cx=r.x+r.w/2,cy=r.y+r.h/2,dx=ball.x-cx,dy=ball.y-cy;if(Math.abs(dx/(r.w||1))>Math.abs(dy/(r.h||1))){ball.x=dx<0?r.x-ball.r:r.x+r.w+ball.r;ball.vx*=-.64}else{ball.y=dy<0?r.y-ball.r:r.y+r.h+ball.r;ball.vy*=-.64}if(performance.now()-lastWallSound>110){playSound('wall');lastWallSound=performance.now();if(Math.random()<.14)setFunLine('🧱 障礙物：路這麼大，你偏偏選我。')}});
+  bombs.forEach(o=>{if(!o.alive)return;if(level>=3){o.x+=o.vx*dt;o.y+=o.vy*dt;if(o.x<o.r||o.x>W-o.r)o.vx*=-1;if(o.y<o.r||o.y>H-o.r)o.vy*=-1;o.x=clamp(o.x,o.r,W-o.r);o.y=clamp(o.y,o.r,H-o.r)}if(Math.hypot(ball.x-o.x,ball.y-o.y)<ball.r+o.r){o.alive=false;score-=150;scoreEl.textContent=score;combo=1;comboEl.textContent='x1';toastMsg('💥 砰！-150，這顆炸彈很會算帳');setFunLine(randomFun('bomb'));playSound('bomb');burst(o.x,o.y,'bomb');ball.vx*=-.8;ball.vy*=-.8;if(navigator.vibrate)navigator.vibrate([35,35,70]);setTimeout(()=>{let p=randomSpot();Object.assign(o,p,{alive:true})},1000)}});
+  holes.forEach(h=>{if(Math.hypot(ball.x-h.x,ball.y-h.y)<ball.r+h.r-5){toastMsg('🕳️ 掉洞！-100，鋼珠去地下室冷靜一下');setFunLine(randomFun('hole'));playSound('hole');burst(ball.x,ball.y,'hole');if(navigator.vibrate)navigator.vibrate(80);resetBall(-100)}});
+  chests.forEach(o=>{if(o.alive&&Math.hypot(ball.x-o.x,ball.y-o.y)<ball.r+o.r){o.alive=false;const quick=now-lastChestAt<3500;combo=quick?Math.min(combo+1,5):1;lastChestAt=now;comboEl.textContent='x'+combo;const gain=100*combo;score+=gain;scoreEl.textContent=score;chestsTaken++;toastMsg('🎁 發財啦 +'+gain+(combo>1?'！連吃 x'+combo:'！'));setFunLine(randomFun('chest'));playSound('chest');burst(o.x,o.y,'gold');if(navigator.vibrate)navigator.vibrate(20);setTimeout(()=>{let p=randomSpot();Object.assign(o,p,{alive:true})},800);if(chestsTaken>=8+level*2){running=false;setTimeout(()=>setupLevel(level+1,false),700);playSound('level');toastMsg('🎉 過關！鋼珠竟然還活著 → 第 '+(level+1)+' 關');setFunLine('恭喜！下一關的炸彈已收到你的履歷。')}}});
+  particles.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=.97;p.vy*=.97;p.life-=dt});particles=particles.filter(p=>p.life>0)
+}
+function drawMetalBall(){ctx.save();ctx.shadowColor='#000';ctx.shadowBlur=14;ctx.shadowOffsetY=8;let g=ctx.createRadialGradient(ball.x-ball.r*.42,ball.y-ball.r*.5,2,ball.x,ball.y,ball.r*1.2);g.addColorStop(0,'#fff');g.addColorStop(.16,'#dce5e8');g.addColorStop(.48,'#717f85');g.addColorStop(.77,'#263034');g.addColorStop(1,'#090c0e');ctx.fillStyle=g;ctx.beginPath();ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);ctx.fill();ctx.lineWidth=1.5;ctx.strokeStyle='#ffffff88';ctx.stroke();ctx.restore()}
+function drawChest(o,t){if(!o.alive)return;ctx.save();ctx.translate(o.x,o.y);let s=1+Math.sin(t*4+o.pulse)*.035;ctx.scale(s,s);ctx.shadowColor='#ffcc44';ctx.shadowBlur=12;ctx.fillStyle='#8d5524';ctx.strokeStyle='#3e230e';ctx.lineWidth=3;ctx.beginPath();ctx.roundRect(-18,-10,36,25,5);ctx.fill();ctx.stroke();ctx.fillStyle='#b06b2e';ctx.beginPath();ctx.roundRect(-18,-18,36,13,[7,7,2,2]);ctx.fill();ctx.stroke();ctx.fillStyle='#ffd166';ctx.fillRect(-3,-15,6,28);ctx.fillRect(-18,-4,36,5);ctx.restore()}
+function drawBomb(o,t){if(!o.alive)return;ctx.save();ctx.translate(o.x,o.y);ctx.shadowColor='#ff4b4b';ctx.shadowBlur=8;let g=ctx.createRadialGradient(-6,-8,2,0,0,20);g.addColorStop(0,'#666');g.addColorStop(.35,'#202529');g.addColorStop(1,'#050708');ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,3,17,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#111';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(8,-10);ctx.quadraticCurveTo(16,-23,21,-15);ctx.stroke();ctx.fillStyle=Math.sin(t*18)>0?'#fff1a8':'#ff6b35';ctx.beginPath();ctx.arc(22,-16,4.5,0,Math.PI*2);ctx.fill();ctx.restore()}
+function draw(t){ctx.clearRect(0,0,W,H);let grad=ctx.createRadialGradient(W*(.5-tilt.x*.12),H*(.5-tilt.y*.12),10,W/2,H/2,W*.7);grad.addColorStop(0,'#ffffff12');grad.addColorStop(1,'#0000002b');ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+  ramps.forEach(r=>{let g=ctx.createLinearGradient(r.x,r.y,r.x+r.w,r.y+r.h);g.addColorStop(0,'#7a5caf55');g.addColorStop(1,'#3e2d7055');ctx.fillStyle=g;ctx.fillRect(r.x,r.y,r.w,r.h);ctx.strokeStyle='#b9a0ff88';ctx.strokeRect(r.x+.5,r.y+.5,r.w-1,r.h-1);ctx.fillStyle='#e1d6ff99';ctx.font='bold 18px sans-serif';ctx.fillText(r.fx>0?'➜':'➜',r.x+r.w/2-8,r.y+r.h/2+6)});
+  holes.forEach(h=>{let g=ctx.createRadialGradient(h.x,h.y,2,h.x,h.y,h.r);g.addColorStop(0,'#000');g.addColorStop(.65,'#050607');g.addColorStop(1,'#69726c');ctx.fillStyle=g;ctx.beginPath();ctx.arc(h.x,h.y,h.r,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#0009';ctx.stroke()});
+  magnets.forEach(m=>{ctx.save();ctx.translate(m.x,m.y);ctx.shadowColor='#69b8ff';ctx.shadowBlur=15;ctx.strokeStyle='#63b5ff';ctx.lineWidth=8;ctx.beginPath();ctx.arc(0,0,17,.18*Math.PI,.82*Math.PI,true);ctx.stroke();ctx.strokeStyle='#ff6474';ctx.beginPath();ctx.moveTo(-15,-10);ctx.lineTo(-15,8);ctx.moveTo(15,-10);ctx.lineTo(15,8);ctx.stroke();ctx.restore()});
+  walls.forEach(r=>{let g=ctx.createLinearGradient(r.x,r.y,r.x+r.w,r.y+r.h);g.addColorStop(0,'#6a4935');g.addColorStop(.5,'#3d281c');g.addColorStop(1,'#1c120d');ctx.fillStyle=g;ctx.shadowColor='#0008';ctx.shadowBlur=5;ctx.fillRect(r.x,r.y,r.w,r.h);ctx.shadowBlur=0;ctx.strokeStyle='#a07b5d55';ctx.strokeRect(r.x+.5,r.y+.5,r.w-1,r.h-1)});
+  chests.forEach(o=>drawChest(o,t));bombs.forEach(o=>drawBomb(o,t));particles.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life/.6);ctx.fillStyle=p.kind==='gold'?'#ffd166':p.kind==='bomb'?'#ff6b5f':'#7b8790';ctx.fillRect(p.x,p.y,p.size,p.size);ctx.globalAlpha=1});drawMetalBall()}
+function loop(now){let dt=Math.min((now-last)/1000,.032);last=now;if(running&&now-lastSecond>=1000){let n=Math.floor((now-lastSecond)/1000);timeLeft-=n;lastSecond+=n*1000;timeEl.textContent=Math.max(0,timeLeft);if(timeLeft<=0){running=false;overlay.style.display='flex';overlay.querySelector('.msg-card').innerHTML=`<b>⏰ 時間到！${score} 分</b><small>你撐到第 ${level} 關。<br>${score>=1200?'鋼珠：老闆，我今天表現可以加薪嗎？':score>=500?'鋼珠：至少我們不是零分回家。':'鋼珠：這局先當作設備測試。'}<br>按「我不服，再來一次」繼續。</small>`}}physics(dt,now);draw(now/1000);requestAnimationFrame(loop)}
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
